@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/server.js"
+    }
+  ],
+  "env": {
+    "EMAIL_SERVICE": "gmail",
+    "EMAIL_USER": "pranavc1515@gmail.com",
+    "EMAIL_PASS": "lrqd srpy hucx ciqz"
+  }
+}

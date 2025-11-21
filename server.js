@@ -9,8 +9,14 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
+// Middleware - CORS configured to allow all origins
+app.use(cors({
+    origin: '*', // Allow all origins
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+    credentials: false
+}));
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -62,12 +68,49 @@ const swaggerOptions = {
     apis: ['./server.js'], // Path to the API files
 };
 
-const swaggerSpec = swaggerJsdoc(swaggerOptions);
+const baseSwaggerSpec = swaggerJsdoc(swaggerOptions);
 
-// Serve OpenAPI JSON spec
+// Serve OpenAPI JSON spec with dynamic server based on environment
 app.get('/api-docs.json', (req, res) => {
+    // Detect if we're in production (Vercel or other hosting)
+    const isProduction = process.env.VERCEL_URL || req.headers.host?.includes('vercel.app') || req.headers.host?.includes('email-sender-rho-two');
+    
+    // Get current origin (handles Vercel's proxy setup)
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const host = req.headers['x-forwarded-host'] || req.headers.host || req.get('host');
+    const currentOrigin = `${protocol}://${host}`;
+    
+    // Create a copy of the spec and modify servers
+    const spec = JSON.parse(JSON.stringify(baseSwaggerSpec));
+    
+    if (isProduction) {
+        // In production, put production server first and use current origin
+        spec.servers = [
+            {
+                url: currentOrigin,
+                description: 'Current server (Production)',
+            },
+            {
+                url: `http://localhost:${PORT}`,
+                description: 'Development server',
+            },
+        ];
+    } else {
+        // In development, put localhost first
+        spec.servers = [
+            {
+                url: `http://localhost:${PORT}`,
+                description: 'Development server',
+            },
+            {
+                url: 'https://email-sender-rho-two.vercel.app',
+                description: 'Production server',
+            },
+        ];
+    }
+    
     res.setHeader('Content-Type', 'application/json');
-    res.send(swaggerSpec);
+    res.send(spec);
 });
 
 // Swagger UI setup - Using CDN for better serverless compatibility
@@ -111,7 +154,10 @@ const swaggerHtml = `
                 plugins: [
                     SwaggerUIBundle.plugins.DownloadUrl
                 ],
-                layout: "StandaloneLayout"
+                layout: "StandaloneLayout",
+                validatorUrl: null, // Disable validator for better performance
+                defaultModelsExpandDepth: 1,
+                defaultModelExpandDepth: 1
             });
         };
     </script>

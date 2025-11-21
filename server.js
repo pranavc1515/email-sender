@@ -20,14 +20,17 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Create transporter for Gmail
+// Create transporter for Gmail - using hardcoded credentials
+const EMAIL_USER = 'pranavkaitongo@gmail.com';
+const EMAIL_PASS = 'jxdi hqtd phyq tupv';
+
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 465,
     secure: true, // true for 465, false for other ports
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        user: EMAIL_USER,
+        pass: EMAIL_PASS
     }
 });
 
@@ -328,7 +331,7 @@ app.post('/api/send-email', async (req, res) => {
 
         // Email options
         const mailOptions = {
-            from: process.env.EMAIL_USER,
+            from: EMAIL_USER,
             to: to,
             subject: subject,
             text: body || '',
@@ -498,7 +501,7 @@ app.post('/api/send-bulk-email', async (req, res) => {
         for (const recipient of recipients) {
             try {
                 const mailOptions = {
-                    from: process.env.EMAIL_USER,
+                    from: EMAIL_USER,
                     to: recipient,
                     subject: subject,
                     text: body || '',
